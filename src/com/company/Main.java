@@ -1,14 +1,30 @@
 package com.company;
 
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 public class Main {
 
+    private static final ArrayList<Integer> ALL_POSSIBILITIES = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9));
     private static int[][] grid;
+
+    private static int[][] deepCopy(int[][] a) {
+        if (a == null) {
+            return null;
+        }
+
+        final int[][] result = new int[a.length][];
+        for (int i = 0; i < a.length; ++i) {
+            result[i] = Arrays.copyOf(a[i], a[i].length);
+        }
+        return result;
+    }
 
     private static boolean loadGrid(String csvFilePath) {
         try {
@@ -54,7 +70,7 @@ public class Main {
         }
     }
 
-    private static boolean validSudokuGrid(Boolean isFinalGrid) {
+    private static boolean validSudokuGrid(int[][] g, Boolean isFinalGrid) {
         Set<Integer> unique = new HashSet<>(9);
 
         // Check grid lines and validate numbers range
@@ -62,17 +78,17 @@ public class Main {
         for (i = 0; i < 9; ++i) {
             unique.clear();
             for (j = 0; j < 9; ++j) {
-                if (!isFinalGrid && grid[i][j] == 0) {
+                if (!isFinalGrid && g[i][j] == 0) {
                     continue;
                 }
 
-                if (grid[i][j] < 1 || grid[i][j] > 9) {
-                    System.out.println("Invalid value " + grid[i][j] + " at cell(" + i + ", " + j + ")");
+                if (g[i][j] < 1 || g[i][j] > 9) {
+                    System.out.println("Invalid value " + g[i][j] + " at cell(" + i + ", " + j + ")");
                     return false;
                 }
 
-                if (!unique.add(grid[i][j])) {
-                    System.out.println("Invalid line " + i + ". Element " + grid[i][j] + " is reoccurring at cell(" + i + ", " + j + ")");
+                if (!unique.add(g[i][j])) {
+                    System.out.println("Invalid line " + i + ". Element " + g[i][j] + " is reoccurring at cell(" + i + ", " + j + ")");
                     return false;
                 }
             }
@@ -82,12 +98,12 @@ public class Main {
         for (i = 0; i < 9; ++i) {
             unique.clear();
             for (j = 0; j < 9; ++j) {
-                if (!isFinalGrid && grid[j][i] == 0) {
+                if (!isFinalGrid && g[j][i] == 0) {
                     continue;
                 }
 
-                if (!unique.add(grid[j][i])) {
-                    System.out.println("Invalid column " + i + ". Element " + grid[j][i] + " is reoccurring at cell(" + j + ", " + i + ")");
+                if (!unique.add(g[j][i])) {
+                    System.out.println("Invalid column " + i + ". Element " + g[j][i] + " is reoccurring at cell(" + j + ", " + i + ")");
                     return false;
                 }
             }
@@ -102,11 +118,11 @@ public class Main {
                 mc = c + 3;
                 for (i = r; i < mr; ++i) {
                     for (j = c; j < mc; ++j) {
-                        if (!isFinalGrid && grid[i][j] == 0) {
+                        if (!isFinalGrid && g[i][j] == 0) {
                             continue;
                         }
 
-                        if (!unique.add(grid[i][j])) {
+                        if (!unique.add(g[i][j])) {
                             System.out.println("Invalid quadrant " + (r + (c / 3)));
                             return false;
                         }
@@ -116,6 +132,87 @@ public class Main {
         }
 
         return true;
+    }
+
+    private static Point getNextCell(int[][] g) {
+        for (int i = 0; i < 9; ++i) {
+            for (int j = 0; j < 9; ++j) {
+                if (g[i][j] == 0) {
+                    return new Point(i, j);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static ArrayList<Integer> getCellPossibilities(int[][] g, Point cell) {
+        ArrayList<Integer> possibilities = new ArrayList<>(ALL_POSSIBILITIES);
+        int i;
+
+        // Check row
+        for (i = 0; i < 9; ++i) {
+            if (i != cell.y && g[cell.x][i] != 0) {
+                possibilities.remove(Integer.valueOf(g[cell.x][i]));
+            }
+        }
+
+        // Check column
+        for (i = 0; i < 9; ++i) {
+            if (i != cell.x && g[i][cell.y] != 0) {
+                possibilities.remove(Integer.valueOf(g[i][cell.y]));
+            }
+        }
+
+        // Check quadrant
+        int r = (cell.x / 3) * 3;
+        int c = (cell.y / 3) * 3;
+        for (i = r; i < r + 3; ++i) {
+            for (int j = c; j < c + 3; ++j) {
+                if (!(i == cell.x && j == cell.y) && g[i][j] != 0) {
+                    possibilities.remove(Integer.valueOf(g[i][j]));
+                }
+            }
+        }
+
+        return possibilities;
+    }
+
+    private static int[][] solve(int[][] g) {
+        if (g == null) {
+            return null;
+        }
+
+        Point c = getNextCell(g);
+        if (c == null) {
+            return validSudokuGrid(g, true) ? g : null;
+        }
+
+        int[][] r;
+        ArrayList<Integer> p = getCellPossibilities(g, c);
+        for (Integer i : p) {
+            g[c.x][c.y] = i;
+            r = solve(deepCopy(g));
+            if (r != null) {
+                return r;
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean solveSudoku() {
+        if (!validSudokuGrid(grid, false)) {
+            return false;
+        }
+
+        int[][] tmp = solve(deepCopy(grid));
+        if (tmp != null) {
+            grid = tmp;
+            return true;
+        }
+
+        return false;
     }
 
     public static void main(String[] args) {
@@ -133,6 +230,11 @@ public class Main {
             return;
         }
 
-        System.out.println("Valid sudoku grid: " + validSudokuGrid(true));
+        if (!solveSudoku()) {
+            System.out.println("Impossible sudoku grid");
+            return;
+        }
+
+        System.out.println("ez");
     }
 }
