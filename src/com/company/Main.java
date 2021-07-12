@@ -215,6 +215,18 @@ public class Main {
         return false;
     }
 
+    private static void printSudokuGrid(int[][] g) {
+        for (int i = 0; i < 9; ++i) {
+            for (int j = 0; j < 9; ++j) {
+                if (j == 8) {
+                    System.out.println(g[i][j]);
+                } else {
+                    System.out.print(g[i][j] + " ");
+                }
+            }
+        }
+    }
+
     public static void main(String[] args) {
         if (args.length == 0) {
             System.out.println("Missing CSV file path");
@@ -234,6 +246,8 @@ public class Main {
             System.out.println("Impossible sudoku grid");
             return;
         }
+
+        printSudokuGrid(grid);
 
         System.out.println("ez");
     }
