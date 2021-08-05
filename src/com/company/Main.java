@@ -192,10 +192,11 @@ public class Main {
         ArrayList<Integer> p = getCellPossibilities(g, c);
         for (Integer i : p) {
             g[c.x][c.y] = i;
-            r = solve(deepCopy(g));
+            r = solve(g);
             if (r != null) {
                 return r;
             }
+            g[c.x][c.y] = 0;
         }
 
         return null;
